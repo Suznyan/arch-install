@@ -60,10 +60,16 @@ timeout 3
 editor no
 BOOT
 
+if [[ -n "$UCODE_IMG" ]]; then
+INITRD_LINE="initrd $UCODE_IMG"
+else
+INITRD_LINE=""
+fi
+
 cat <<ENTRY > /boot/loader/entries/arch.conf
 title Arch Linux
 linux /vmlinuz-linux
-initrd /amd-ucode.img
+$INITRD_LINE
 initrd /initramfs-linux.img
 options root=PARTUUID=$ROOT_UUID rw
 ENTRY
