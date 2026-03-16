@@ -46,6 +46,7 @@ krita \
 kscreen \
 kwayland-integration \
 linux-headers \
+lib32-vulkan-radeon \
 lutris \
 mesa \
 mesa-utils \
@@ -57,6 +58,7 @@ obs-studio \
 openssh \
 pipewire \
 pipewire-alsa \
+pipewire-jack \
 pipewire-pulse \
 plasma-browser-integration \
 plasma-desktop \
@@ -87,6 +89,7 @@ wl-clipboard \
 xclip \
 xdg-user-dirs \
 xdg-utils \
+xdg-desktop-portal-kde \
 xorg-xwayland \
 zip
 
