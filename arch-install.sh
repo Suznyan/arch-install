@@ -127,7 +127,7 @@ fi
 echo "Detected CPU vendor: $CPU_VENDOR"
 echo "Installing microcode package: $MICROCODE"
 
-pacstrap /mnt base linux linux-firmware $MICROCODE \
+pacstrap /mnt base base-devel linux linux-firmware $MICROCODE \
 networkmanager sudo git nano curl wget reflector
 
 genfstab -U /mnt >> /mnt/etc/fstab
