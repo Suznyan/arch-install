@@ -47,6 +47,7 @@ kscreen \
 kwayland-integration \
 linux-headers \
 lib32-vulkan-radeon \
+lsp-plugins-lv2 \
 lutris \
 mesa \
 mesa-utils \
