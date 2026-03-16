@@ -3,6 +3,9 @@ set -e
 
 USERNAME="$1"
 
+sed -i '/\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
+pacman -Syy
+
 pacman -S --noconfirm \
 adobe-source-han-sans-jp-fonts \
 adobe-source-han-serif-jp-fonts \
@@ -13,7 +16,6 @@ bluedevil \
 bluez \
 bluez-utils \
 btop \
-deadbeef \
 discord \
 dnscrypt-proxy \
 dolphin \
@@ -85,8 +87,7 @@ wl-clipboard \
 xclip \
 xdg-user-dirs \
 xdg-utils \
-xwayland \
-xwaylandvideobridge \
+xorg-xwayland \
 zip
 
 systemctl enable NetworkManager
@@ -113,6 +114,12 @@ sudo -u "$USERNAME" makepkg -si --noconfirm
 
 # AUR packages
 
-sudo -u "$USERNAME" yay -S --noconfirm 
-librewolf-bin brave-bin byedpi-bin pcsx2-latest-bin
-opentabletdriver qdiskinfo-bin
+sudo -u "$USERNAME" yay -S --noconfirm \
+librewolf-bin \
+brave-bin \
+byedpi-bin \
+pcsx2-latest-bin \
+opentabletdriver \
+qdiskinfo-bin \
+deadbeef \
+xwaylandvideobridge
