@@ -41,11 +41,6 @@ useradd -m -G wheel -s /bin/bash "$USERNAME"
 echo "root:$PASSWORD" | chpasswd
 echo "$USERNAME:$PASSWORD" | chpasswd
 
-# Services
-
-systemctl enable NetworkManager
-systemctl enable sshd
-
 # Bootloader
 
 bootctl install
