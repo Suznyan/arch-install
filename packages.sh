@@ -100,7 +100,7 @@ systemctl enable syncthing@$USERNAME
 # zram if no swap
 
 if ! grep -q swap /etc/fstab; then
-pacman -S --noconfirm systemd-zram-generator
+pacman -S --noconfirm zram-generator
 fi
 
 # Install yay
