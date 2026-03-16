@@ -104,10 +104,10 @@ fi
 
 pacman -Sy --noconfirm reflector
 reflector \
---country Japan,Singapore,Taiwan,Korea 
---age 12 
---protocol https 
---sort rate 
+--country Vietnam,Japan,Singapore,Taiwan,Korea \
+--age 12 \
+--protocol https \
+--sort rate \
 --save /etc/pacman.d/mirrorlist
 
 # Base system
