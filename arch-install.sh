@@ -15,14 +15,37 @@ nmcli dev wifi connect "$WIFI_SSID" password "$WIFI_PASS"
 fi
 
 # Disk selection
-
+LIVE_DEVICE=$(lsblk -no pkname "$(findmnt -n -o SOURCE /run/archiso/bootmnt)" 2>/dev/null || true)
+LIVE_DEVICE="/dev/${LIVE_DEVICE:-}"
+echo "Available disks:"
 lsblk -d -o NAME,SIZE,MODEL
-read -rp "Install disk (example: sda or nvme0n1): " DISK_NAME
+while true; do
+read -rp "Enter install disk (example: sda or nvme0n1): " DISK_NAME
 DISK="/dev/$DISK_NAME"
 
-echo "WARNING: ALL DATA ON $DISK WILL BE DESTROYED."
-read -rp "Type YES to continue: " CONFIRM
-[[ "$CONFIRM" == "YES" ]] || exit 1
+if [[ ! -b "$DISK" ]]; then
+echo "Disk does not exist."
+continue
+fi
+
+if [[ "$DISK" == "$LIVE_DEVICE" ]]; then
+echo "ERROR: Cannot install to the live ISO disk."
+continue
+fi
+
+break
+done
+
+echo
+echo "This will ERASE:"
+echo "$DISK"
+
+read -rp "Type the disk name ($DISK_NAME) to confirm: " CONFIRM
+
+if [[ "$CONFIRM" != "$DISK_NAME" ]]; then
+echo "Confirmation failed."
+exit 1
+fi
 
 # Partition naming
 
@@ -88,8 +111,23 @@ reflector
 --save /etc/pacman.d/mirrorlist
 
 # Base system
+CPU_VENDOR=$(grep -m1 "vendor_id" /proc/cpuinfo)
 
-pacstrap /mnt base linux linux-firmware amd-ucode 
+if [[ "$CPU_VENDOR" == *"AuthenticAMD"* ]]; then
+MICROCODE="amd-ucode"
+UCODE_IMG="/amd-ucode.img"
+elif [[ "$CPU_VENDOR" == *"GenuineIntel"* ]]; then
+MICROCODE="intel-ucode"
+UCODE_IMG="/intel-ucode.img"
+else
+MICROCODE=""
+UCODE_IMG=""
+fi
+
+echo "Detected CPU vendor: $CPU_VENDOR"
+echo "Installing microcode package: $MICROCODE"
+
+pacstrap /mnt base linux linux-firmware $MICROCODE \
 networkmanager sudo git nano curl wget reflector
 
 genfstab -U /mnt >> /mnt/etc/fstab
