@@ -102,8 +102,7 @@ fi
 
 # Mirrors
 
-pacman -Sy --noconfirm reflector
-reflector 
+pacman -Sy --noconfirm reflector \
 --country Japan,Singapore,Taiwan,Korea 
 --age 12 
 --protocol https 
