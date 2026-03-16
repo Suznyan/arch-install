@@ -4,26 +4,90 @@ set -e
 USERNAME="$1"
 
 pacman -S --noconfirm \
-plasma-desktop konsole dolphin kate ark spectacle kcalc \
-plasma-systemmonitor plasma-nm plasma-pa powerdevil \
-bluedevil bluez bluez-utils \
-kdeconnect samba kio-extras \
-sddm sddm-kcm polkit-kde-agent \
-ffmpegthumbs kdegraphics-thumbnailers \
-noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-dejavu \
-adobe-source-han-sans-jp-fonts adobe-source-han-serif-jp-fonts \
-xdg-user-dirs xdg-utils wl-clipboard xclip \
-pipewire pipewire-pulse pipewire-alsa wireplumber \
-fcitx5 fcitx5-mozc fcitx5-configtool \
-htop btop fastfetch tmux \
-openssh zip unzip stow \
-dnscrypt-proxy easyeffects qbittorrent \
-krita gimp \
-discord steam obs-studio \
-android-tools scrcpy \
-keepassxc lutris syncthing tor \
-deadbeef mpv ffmpeg \
-python
+adobe-source-han-sans-jp-fonts \
+adobe-source-han-serif-jp-fonts \
+alsa-utils \
+android-tools \
+ark \
+bluedevil \
+bluez \
+bluez-utils \
+btop \
+deadbeef \
+discord \
+dnscrypt-proxy \
+dolphin \
+easyeffects \
+fastfetch \
+fcitx5 \
+fcitx5-configtool \
+fcitx5-mozc \
+ffmpeg \
+ffmpegthumbs \
+gamemode \
+gimp \
+gst-libav \
+gst-plugin-pipewire \
+gst-plugins-bad \
+gst-plugins-ugly \
+htop \
+kate \
+kcalc \
+kdeconnect \
+kdegraphics-thumbnailers \
+keepassxc \
+kio-admin \
+kio-extras \
+kio-fuse \
+konsole \
+krita \
+kscreen \
+kwayland-integration \
+linux-headers \
+lutris \
+mesa \
+mesa-utils \
+mpv \
+noto-fonts \
+noto-fonts-cjk \
+noto-fonts-emoji \
+obs-studio \
+openssh \
+pipewire \
+pipewire-alsa \
+pipewire-pulse \
+plasma-browser-integration \
+plasma-desktop \
+plasma-nm \
+plasma-pa \
+plasma-systemmonitor \
+polkit-kde-agent \
+power-profiles-daemon \
+powerdevil \
+python \
+qbittorrent \
+samba \
+scrcpy \
+sddm \
+sddm-kcm \
+sof-firmware \
+spectacle \
+steam \
+stow \
+syncthing \
+tmux \
+tor \
+ttf-dejavu \
+unzip \
+vulkan-radeon \
+wireplumber \
+wl-clipboard \
+xclip \
+xdg-user-dirs \
+xdg-utils \
+xwayland \
+xwaylandvideobridge \
+zip
 
 systemctl enable NetworkManager
 systemctl enable sddm
