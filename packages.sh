@@ -93,7 +93,6 @@ noto-fonts \
 noto-fonts-cjk \
 noto-fonts-emoji \
 obs-studio \
-openssh \
 opentabletdriver \
 pcsx2-latest-bin \
 pipewire \
