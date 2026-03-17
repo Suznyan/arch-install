@@ -79,7 +79,7 @@ fi
 
 # Format
 
-mkfs.fat -F32 "$P1"
+mkfs.fat -F 32 "$P1"
 
 if [[ "$SWAPSIZE" != "0" ]]; then
 mkswap "$P2"
@@ -93,8 +93,7 @@ fi
 # Mount
 
 mount "$ROOT" /mnt
-mkdir /mnt/boot
-mount "$P1" /mnt/boot
+mount --mkdir "$P1" /mnt/boot
 
 if [[ "$SWAPSIZE" != "0" ]]; then
 swapon "$P2"
@@ -104,7 +103,7 @@ fi
 
 pacman -Sy --noconfirm reflector
 reflector \
---country Vietnam,Japan,Singapore,Taiwan,Korea \
+--latest 100 \
 --age 12 \
 --protocol https \
 --sort rate \
