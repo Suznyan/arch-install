@@ -71,6 +71,31 @@ initrd /initramfs-linux.img
 options root=UUID=$ROOT_UUID rw
 ENTRY
 
+sed -i '/\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
+pacman -Syy --noconfirm
+
+# zram if no swap
+
+if ! findmnt -rn -t swap >/dev/null; then
+pacman -S --noconfirm zram-generator
+  cat <<EOF > /etc/systemd/zram-generator.conf
+[zram0]
+zram-size = ram / 2
+compression-algorithm = zstd
+EOF
+fi
+
+# Install yay
+
+cd /opt
+git clone https://aur.archlinux.org/yay-bin.git
+chown -R "$USERNAME:$USERNAME" yay-bin
+cd yay-bin
+runuser -u "$USERNAME" -- makepkg -si --noconfirm --needed
+
+systemctl enable NetworkManager
+systemctl enable sshd
+
 # Package install
 
 bash /root/packages.sh "$USERNAME"
