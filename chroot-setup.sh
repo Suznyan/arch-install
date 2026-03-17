@@ -31,11 +31,11 @@ HOSTS
 
 # Pacman tuning
 
-sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 5/' /etc/pacman.conf
+sed -i 's/^#ParallelDownloads = 5/ParallelDownloads = 5/' /etc/pacman.conf
 
 # Users
 
-sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
+sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
 useradd -m -G wheel -s /bin/bash "$USERNAME"
 
@@ -47,6 +47,7 @@ echo "$USERNAME:$PASSWORD" | chpasswd
 bootctl install
 
 ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART")
+[[ -n "$ROOT_UUID" ]] || { echo "Failed to get UUID"; exit 1; }
 
 mkdir -p /boot/loader/entries
 
@@ -57,7 +58,7 @@ editor no
 BOOT
 
 if [[ -n "$UCODE_IMG" ]]; then
-INITRD_LINE="/initrd $UCODE_IMG.img"
+INITRD_LINE="initrd /$UCODE_IMG.img"
 else
 INITRD_LINE=""
 fi
