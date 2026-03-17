@@ -3,28 +3,7 @@ set -e
 
 USERNAME="$1"
 
-sed -i '/\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
-pacman -Syy --noconfirm
-
-# zram if no swap
-
-if ! findmnt -rn -t swap >/dev/null; then
-pacman -S --noconfirm zram-generator
-  cat <<EOF > /etc/systemd/zram-generator.conf
-[zram0]
-zram-size = ram / 2
-compression-algorithm = zstd
-EOF
-fi
-
-# Install yay
-
-cd /opt
-git clone https://aur.archlinux.org/yay-bin.git
-chown -R "$USERNAME:$USERNAME" yay-bin
-cd yay-bin
-runuser -u "$USERNAME" -- makepkg -si --noconfirm --needed
-
+# Install packages
 echo
 echo "=== Package Installation ==="
 echo "The following packages will be installed:"
@@ -38,7 +17,6 @@ case "$CONFIRM" in
   *) echo "Package installation skipped."; exit 0 ;;
 esac
 
-# Install packages
 runuser -u "$USERNAME" -- yay -S --noconfirm --needed \
 adobe-source-han-sans-jp-fonts \
 adobe-source-han-serif-jp-fonts \
@@ -134,7 +112,5 @@ xorg-xwayland \
 xwaylandvideobridge \
 zip
 
-systemctl enable NetworkManager
 systemctl enable sddm
 systemctl enable bluetooth
-systemctl enable sshd
