@@ -4,11 +4,11 @@ set -e
 USERNAME="$1"
 
 sed -i '/\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
-pacman -Syy
+pacman -Syy --noconfirm
 
 # zram if no swap
 
-if ! grep -q swap /etc/fstab; then
+if ! findmnt -rn -t swap >/dev/null; then
 pacman -S --noconfirm zram-generator
 fi
 
@@ -16,12 +16,12 @@ fi
 
 cd /opt
 git clone https://aur.archlinux.org/yay-bin.git
-chown -R "$USERNAME:$USERNAME" yay
-cd yay
-sudo -u "$USERNAME" makepkg -si --noconfirm
+chown -R "$USERNAME:$USERNAME" yay-bin
+cd yay-bin
+runuser -u "$USERNAME" -- makepkg -si --noconfirm --needed
 
 # Install packages
-sudo -u "$USERNAME" yay -S --noconfirm \
+runuser -u "$USERNAME" -- yay -S --noconfirm --needed \
 adobe-source-han-sans-jp-fonts \
 adobe-source-han-serif-jp-fonts \
 alsa-utils \
@@ -121,5 +121,3 @@ systemctl enable NetworkManager
 systemctl enable sddm
 systemctl enable bluetooth
 systemctl enable sshd
-systemctl enable dnscrypt-proxy
-systemctl enable syncthing@$USERNAME
