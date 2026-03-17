@@ -10,6 +10,11 @@ pacman -Syy --noconfirm
 
 if ! findmnt -rn -t swap >/dev/null; then
 pacman -S --noconfirm zram-generator
+  cat <<EOF > /etc/systemd/zram-generator.conf
+[zram0]
+zram-size = ram / 2
+compression-algorithm = zstd
+EOF
 fi
 
 # Install yay
@@ -19,6 +24,19 @@ git clone https://aur.archlinux.org/yay-bin.git
 chown -R "$USERNAME:$USERNAME" yay-bin
 cd yay-bin
 runuser -u "$USERNAME" -- makepkg -si --noconfirm --needed
+
+echo
+echo "=== Package Installation ==="
+echo "The following packages will be installed:"
+echo "(large package set including KDE, gaming, multimedia, etc.)"
+echo
+
+read -rp "Proceed with installation? [y/N]: " CONFIRM
+
+case "$CONFIRM" in
+  [yY][eE][sS]|[yY]) ;;
+  *) echo "Package installation skipped."; exit 0 ;;
+esac
 
 # Install packages
 runuser -u "$USERNAME" -- yay -S --noconfirm --needed \
