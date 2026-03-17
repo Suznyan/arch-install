@@ -189,7 +189,7 @@ install_base() {
   fi
 
   pacstrap -K /mnt base base-devel linux linux-firmware $MICROCODE \
-    networkmanager sudo git nano curl wget reflector
+    networkmanager openssh sudo git nano curl wget reflector
 
   genfstab -U /mnt >> /mnt/etc/fstab
 }
