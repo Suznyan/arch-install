@@ -1,151 +1,235 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Arch Linux Installer ==="
+### =========================
+### Utility Functions
+### =========================
 
-# Internet check
+die() {
+  echo "ERROR: $*" >&2
+  exit 1
+}
 
-if ! ping -c1 archlinux.org &>/dev/null; then
-echo "No internet detected."
-nmcli dev wifi list
-read -rp "SSID: " WIFI_SSID
-read -rsp "Password: " WIFI_PASS
-echo
-nmcli dev wifi connect "$WIFI_SSID" password "$WIFI_PASS"
-fi
+get_part() {
+  local num="$1"
+  if [[ "$DISK_NAME" == nvme* ]]; then
+    echo "${DISK}p${num}"
+  else
+    echo "${DISK}${num}"
+  fi
+}
 
-# Disk selection
-LIVE_DEVICE=$(lsblk -no pkname "$(findmnt -n -o SOURCE /run/archiso/bootmnt)" 2>/dev/null || true)
-LIVE_DEVICE="/dev/${LIVE_DEVICE:-}"
-echo "Available disks:"
-lsblk -d -o NAME,SIZE,MODEL
-while true; do
-read -rp "Enter install disk (example: sda or nvme0n1): " DISK_NAME
-DISK="/dev/$DISK_NAME"
+### =========================
+### Network
+### =========================
 
-if [[ ! -b "$DISK" ]]; then
-echo "Disk does not exist."
-continue
-fi
+setup_network() {
+  echo "=== Network Check ==="
 
-if [[ "$DISK" == "$LIVE_DEVICE" ]]; then
-echo "ERROR: Cannot install to the live ISO disk."
-continue
-fi
+  if ! ping -c1 archlinux.org &>/dev/null; then
+    echo "No internet detected."
+    nmcli dev wifi list
+    read -rp "SSID: " WIFI_SSID
+    read -rsp "Password: " WIFI_PASS; echo
+    nmcli dev wifi connect "$WIFI_SSID" password "$WIFI_PASS"
+  fi
+}
 
-break
-done
+### =========================
+### Disk Selection
+### =========================
 
-echo
-echo "This will ERASE:"
-echo "$DISK"
+select_disk() {
+  echo "=== Disk Selection ==="
 
-read -rp "Type the disk name ($DISK_NAME) to confirm: " CONFIRM
+  LIVE_DEVICE=$(lsblk -no pkname "$(findmnt -n -o SOURCE /run/archiso/bootmnt)" 2>/dev/null || true)
+  LIVE_DEVICE="/dev/${LIVE_DEVICE:-}"
 
-if [[ "$CONFIRM" != "$DISK_NAME" ]]; then
-echo "Confirmation failed."
-exit 1
-fi
+  lsblk -d -o NAME,SIZE,MODEL
 
-# Partition naming
+  while true; do
+    read -rp "Enter install disk (e.g. sda, nvme0n1): " DISK_NAME
+    DISK="/dev/$DISK_NAME"
 
-if [[ "$DISK_NAME" == nvme* ]]; then
-P1="${DISK}p1"
-P2="${DISK}p2"
-P3="${DISK}p3"
-else
-P1="${DISK}1"
-P2="${DISK}2"
-P3="${DISK}3"
-fi
+    [[ -b "$DISK" ]] || { echo "Invalid disk"; continue; }
+    [[ "$DISK" == "$LIVE_DEVICE" ]] && { echo "Cannot use live ISO disk"; continue; }
 
-# Swap prompt
+    break
+  done
 
-read -rp "Swap size in GB (0 for none): " SWAPSIZE
+  echo "This will ERASE: $DISK"
+  read -rp "Type '$DISK_NAME' to confirm: " CONFIRM
+  [[ "$CONFIRM" == "$DISK_NAME" ]] || die "Confirmation failed"
+}
 
-# Partition disk
+### =========================
+### Partition Config
+### =========================
 
-parted -s "$DISK" mklabel gpt
-parted -s "$DISK" mkpart EFI fat32 1MiB 513MiB
-parted -s "$DISK" set 1 esp on
+partition_config() {
+  echo "=== Partition Configuration ==="
 
-if [[ "$SWAPSIZE" != "0" ]]; then
-SWAP_END=$((513 + SWAPSIZE * 1024))
-parted -s "$DISK" mkpart swap linux-swap 513MiB "${SWAP_END}MiB"
-parted -s "$DISK" mkpart root ext4 "${SWAP_END}MiB" 100%
-else
-parted -s "$DISK" mkpart root ext4 513MiB 100%
-fi
+  echo "1) Root only"
+  echo "2) Root + Home"
+  read -rp "Choose layout: " LAYOUT
 
-# Format
+  read -rp "EFI size in MiB (default 512): " EFI_SIZE
+  EFI_SIZE=${EFI_SIZE:-512}
 
-mkfs.fat -F 32 "$P1"
+  read -rp "Swap size in GB (0 for none): " SWAPSIZE
 
-if [[ "$SWAPSIZE" != "0" ]]; then
-mkswap "$P2"
-mkfs.ext4 "$P3"
-ROOT="$P3"
-else
-mkfs.ext4 "$P2"
-ROOT="$P2"
-fi
+  if [[ "$LAYOUT" == "2" ]]; then
+    read -rp "Root size in GB: " ROOT_SIZE
+  fi
+}
 
-# Mount
+### =========================
+### Partition Disk
+### =========================
 
-mount "$ROOT" /mnt
-mount --mkdir "$P1" /mnt/boot
+partition_disk() {
+  echo "=== Partitioning Disk ==="
 
-if [[ "$SWAPSIZE" != "0" ]]; then
-swapon "$P2"
-fi
+  parted -s "$DISK" mklabel gpt
 
-# Mirrors
+  EFI_END=$((1 + EFI_SIZE))
+  CURRENT=$EFI_END
+  PART_INDEX=1
 
-pacman -Sy --noconfirm reflector
-reflector \
---latest 100 \
---age 12 \
---protocol https \
---sort rate \
---save /etc/pacman.d/mirrorlist
+  # EFI
+  parted -s "$DISK" mkpart EFI fat32 1MiB "${EFI_END}MiB"
+  parted -s "$DISK" set 1 esp on
+  ((PART_INDEX++))
 
-# Base system
-CPU_VENDOR=$(grep -m1 "vendor_id" /proc/cpuinfo)
+  # Swap
+  if [[ "$SWAPSIZE" != "0" ]]; then
+    SWAP_END=$((CURRENT + SWAPSIZE * 1024))
+    parted -s "$DISK" mkpart swap linux-swap "${CURRENT}MiB" "${SWAP_END}MiB"
+    SWAP_PART_NUM=$PART_INDEX
+    CURRENT=$SWAP_END
+    ((PART_INDEX++))
+  fi
 
-if [[ "$CPU_VENDOR" == *"AuthenticAMD"* ]]; then
-MICROCODE="amd-ucode"
-UCODE_IMG="/amd-ucode.img"
-elif [[ "$CPU_VENDOR" == *"GenuineIntel"* ]]; then
-MICROCODE="intel-ucode"
-UCODE_IMG="/intel-ucode.img"
-else
-MICROCODE=""
-UCODE_IMG=""
-fi
+  # Root / Home
+  if [[ "$LAYOUT" == "2" ]]; then
+    ROOT_END=$((CURRENT + ROOT_SIZE * 1024))
+    parted -s "$DISK" mkpart root ext4 "${CURRENT}MiB" "${ROOT_END}MiB"
+    ROOT_PART_NUM=$PART_INDEX
+    ((PART_INDEX++))
 
-echo "Detected CPU vendor: $CPU_VENDOR"
-echo "Installing microcode package: $MICROCODE"
+    parted -s "$DISK" mkpart home ext4 "${ROOT_END}MiB" 100%
+    HOME_PART_NUM=$PART_INDEX
+  else
+    parted -s "$DISK" mkpart root ext4 "${CURRENT}MiB" 100%
+    ROOT_PART_NUM=$PART_INDEX
+  fi
 
-pacstrap /mnt base base-devel linux linux-firmware $MICROCODE \
-networkmanager sudo git nano curl wget reflector
+  # Resolve device paths
+  EFI_PART=$(get_part 1)
+  ROOT_PART=$(get_part "$ROOT_PART_NUM")
 
-genfstab -U /mnt >> /mnt/etc/fstab
+  [[ -n "${SWAP_PART_NUM:-}" ]] && SWAP_PART=$(get_part "$SWAP_PART_NUM")
+  [[ -n "${HOME_PART_NUM:-}" ]] && HOME_PART=$(get_part "$HOME_PART_NUM")
+}
 
-# Copy install scripts
+### =========================
+### Format + Mount
+### =========================
 
-cp chroot-setup.sh /mnt/root/
-cp packages.sh /mnt/root/
+format_and_mount() {
+  echo "=== Formatting ==="
 
-# User prompts
+  mkfs.fat -F 32 "$EFI_PART"
+  mkfs.ext4 "$ROOT_PART"
 
-read -rp "Hostname: " HOSTNAME
-read -rp "Domain: " DOMAIN
-read -rp "Username: " USERNAME
-read -rsp "Password: " PASSWORD
-echo
+  [[ -n "${HOME_PART:-}" ]] && mkfs.ext4 "$HOME_PART"
 
-arch-chroot /mnt /root/chroot-setup.sh "$HOSTNAME" "$DOMAIN" "$USERNAME" "$PASSWORD" "$ROOT"
+  if [[ -n "${SWAP_PART:-}" ]]; then
+    mkswap "$SWAP_PART"
+    swapon "$SWAP_PART"
+  fi
 
-umount -R /mnt
-echo "Install finished. Rebooting..."
-reboot
+  echo "=== Mounting ==="
+
+  mount "$ROOT_PART" /mnt
+  mount -m "$EFI_PART" /mnt/boot
+
+  [[ -n "${HOME_PART:-}" ]] && mount -m "$HOME_PART" /mnt/home
+}
+
+### =========================
+### Mirrors
+### =========================
+
+setup_mirrors() {
+  pacman -Sy --noconfirm reflector
+
+  reflector \
+    --latest 50 \
+    --protocol https \
+    --sort rate \
+    --save /etc/pacman.d/mirrorlist
+}
+
+### =========================
+### Base Install
+### =========================
+
+install_base() {
+  echo "=== Installing Base System ==="
+
+  CPU_VENDOR=$(grep -m1 "vendor_id" /proc/cpuinfo)
+
+  if [[ "$CPU_VENDOR" == *"AuthenticAMD"* ]]; then
+    MICROCODE="amd-ucode"
+  elif [[ "$CPU_VENDOR" == *"GenuineIntel"* ]]; then
+    MICROCODE="intel-ucode"
+  else
+    MICROCODE=""
+  fi
+
+  pacstrap -K /mnt base base-devel linux linux-firmware $MICROCODE \
+    networkmanager sudo git nano curl wget reflector
+
+  genfstab -U /mnt >> /mnt/etc/fstab
+}
+
+### =========================
+### User Setup
+### =========================
+
+collect_user_info() {
+  read -rp "Hostname: " HOSTNAME
+  read -rp "Domain: " DOMAIN
+  read -rp "Username: " USERNAME
+  read -rsp "Password: " PASSWORD; echo
+}
+
+### =========================
+### Main
+### =========================
+
+main() {
+  echo "=== Arch Installer (Modular) ==="
+
+  setup_network
+  select_disk
+  partition_config
+  partition_disk
+  format_and_mount
+  setup_mirrors
+  install_base
+  collect_user_info
+
+  cp chroot-setup.sh /mnt/root/
+  cp packages.sh /mnt/root/
+
+  arch-chroot /mnt /root/chroot-setup.sh \
+    "$HOSTNAME" "$DOMAIN" "$USERNAME" "$PASSWORD" "$ROOT_PART"
+
+  umount -R /mnt
+  echo "Install complete. Rebooting..."
+  reboot
+}
+
+main "$@"
