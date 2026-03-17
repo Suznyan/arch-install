@@ -6,7 +6,22 @@ USERNAME="$1"
 sed -i '/\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
 pacman -Syy
 
-pacman -S --noconfirm \
+# zram if no swap
+
+if ! grep -q swap /etc/fstab; then
+pacman -S --noconfirm zram-generator
+fi
+
+# Install yay
+
+cd /opt
+git clone https://aur.archlinux.org/yay-bin.git
+chown -R "$USERNAME:$USERNAME" yay
+cd yay
+sudo -u "$USERNAME" makepkg -si --noconfirm
+
+# Install packages
+sudo -u "$USERNAME" yay -S --noconfirm \
 adobe-source-han-sans-jp-fonts \
 adobe-source-han-serif-jp-fonts \
 alsa-utils \
@@ -15,7 +30,10 @@ ark \
 bluedevil \
 bluez \
 bluez-utils \
+brave-bin \
 btop \
+byedpi-bin \
+deadbeef \
 discord \
 dnscrypt-proxy \
 dolphin \
@@ -45,8 +63,9 @@ konsole \
 krita \
 kscreen \
 kwayland-integration \
-linux-headers \
 lib32-vulkan-radeon \
+librewolf-bin \
+linux-headers \
 lsp-plugins-lv2 \
 lutris \
 mesa \
@@ -57,6 +76,8 @@ noto-fonts-cjk \
 noto-fonts-emoji \
 obs-studio \
 openssh \
+opentabletdriver \
+pcsx2-latest-bin \
 pipewire \
 pipewire-alsa \
 pipewire-jack \
@@ -71,6 +92,7 @@ power-profiles-daemon \
 powerdevil \
 python \
 qbittorrent \
+qdiskinfo-bin \
 samba \
 scrcpy \
 sddm \
@@ -88,10 +110,11 @@ vulkan-radeon \
 wireplumber \
 wl-clipboard \
 xclip \
+xdg-desktop-portal-kde \
 xdg-user-dirs \
 xdg-utils \
-xdg-desktop-portal-kde \
 xorg-xwayland \
+xwaylandvideobridge \
 zip
 
 systemctl enable NetworkManager
@@ -100,30 +123,3 @@ systemctl enable bluetooth
 systemctl enable sshd
 systemctl enable dnscrypt-proxy
 systemctl enable syncthing@$USERNAME
-
-# zram if no swap
-
-if ! grep -q swap /etc/fstab; then
-pacman -S --noconfirm zram-generator
-fi
-
-# Install yay
-
-cd /opt
-git clone https://aur.archlinux.org/yay.git
-chown -R "$USERNAME:$USERNAME" yay
-cd yay
-
-sudo -u "$USERNAME" makepkg -si --noconfirm
-
-# AUR packages
-
-sudo -u "$USERNAME" yay -S --noconfirm \
-librewolf-bin \
-brave-bin \
-byedpi-bin \
-pcsx2-latest-bin \
-opentabletdriver \
-qdiskinfo-bin \
-deadbeef \
-xwaylandvideobridge
