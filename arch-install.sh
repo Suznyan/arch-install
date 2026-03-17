@@ -225,7 +225,7 @@ main() {
   cp packages.sh /mnt/root/
 
   arch-chroot /mnt /root/chroot-setup.sh \
-    "$HOSTNAME" "$DOMAIN" "$USERNAME" "$PASSWORD" "$ROOT_PART"
+    "$HOSTNAME" "$DOMAIN" "$USERNAME" "$PASSWORD" "$ROOT_PART" "$MICROCODE"
 
   umount -R /mnt
   echo "Install complete. Rebooting..."
