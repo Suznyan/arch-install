@@ -6,6 +6,7 @@ DOMAIN="$2"
 USERNAME="$3"
 PASSWORD="$4"
 ROOT_PART="$5"
+UCODE_IMG="$6"
 
 # Time
 
@@ -14,7 +15,7 @@ hwclock --systohc
 
 # Locale
 
-sed -i 's/#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen
+sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
 locale-gen
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
 
@@ -45,7 +46,7 @@ echo "$USERNAME:$PASSWORD" | chpasswd
 
 bootctl install
 
-ROOT_UUID=$(blkid -s PARTUUID -o value "$ROOT_PART")
+ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART")
 
 mkdir -p /boot/loader/entries
 
@@ -56,7 +57,7 @@ editor no
 BOOT
 
 if [[ -n "$UCODE_IMG" ]]; then
-INITRD_LINE="initrd $UCODE_IMG"
+INITRD_LINE="/initrd $UCODE_IMG.img"
 else
 INITRD_LINE=""
 fi
@@ -66,7 +67,7 @@ title Arch Linux
 linux /vmlinuz-linux
 $INITRD_LINE
 initrd /initramfs-linux.img
-options root=PARTUUID=$ROOT_UUID rw
+options root=UUID=$ROOT_UUID rw
 ENTRY
 
 # Package install
